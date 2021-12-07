@@ -2,9 +2,11 @@ package main
 
 import (
 	"flag"
+	"fmt"
 	"log"
 	"net/http"
 	"os"
+	"strconv"
 
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
@@ -31,6 +33,17 @@ var (
 		Name: "http_request_duration_seconds",
 		Help: "Duration of all HTTP requests",
 	}, []string{"code", "handler", "method"})
+
+	logzerName = os.Getenv("LOGZER_NAME")
+	logzerTenure, _ = strconv.ParseFloat(os.Getenv("LOGZER_TENURE_IN_DAYS"),64)
+
+	logzerTenureMetric    = prometheus.NewGauge(prometheus.GaugeOpts{
+		Name: "logzer_tenure_in_days",
+		Help: "How long the Logzer has been here",
+		ConstLabels: map[string]string{
+			"name": logzerName,
+		},
+	})
 )
 
 func main() {
@@ -42,14 +55,17 @@ func main() {
 	flagset.BoolVar(&enableH2c, "h2c", false, "Enable h2c (http/2 over tcp) protocol.")
 	flagset.Parse(os.Args[1:])
 
+	logzerTenureMetric.Set(logzerTenure)
+
 	r := prometheus.NewRegistry()
 	r.MustRegister(httpRequestsTotal)
 	r.MustRegister(httpRequestDuration)
 	r.MustRegister(version)
+	r.MustRegister(logzerTenureMetric)
 
 	foundHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte("Hello from example application."))
+		w.Write([]byte(fmt.Sprintf("%s has worked at Logz.io for %f days", logzerName, logzerTenure)))
 	})
 	notfoundHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusNotFound)

@@ -16,7 +16,12 @@ spec:
     spec:
       containers:
       - name: prometheus-example-app
-        image: quay.io/brancz/prometheus-example-app:v0.3.0
+        image: public.ecr.aws/a9q6d6e8/prometheus-example-app:0.4.0
         ports:
         - name: web
           containerPort: 8080
+        env:
+        - name: LOGZER_NAME
+          value: Simon
+        - name: LOGZER_TENURE_IN_DAYS
+          value: "246"
